@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ limitations under the License.
 #define TENSORFLOW_STREAM_EXECUTOR_EVENT_H_
 
 #include <memory>
+
+#include "tensorflow/stream_executor/platform/port.h"
 
 namespace perftools {
 namespace gputools {
@@ -63,13 +65,15 @@ class Event {
  private:
   friend class Stream;
 
+  // Pointer to the StreamExecutor interface used to create this object.
+  // Not owned.
+  StreamExecutor* stream_exec_;
+
   // Pointer to the platform-specific EventInterface implementation underlying
   // the object. Owned.
   std::unique_ptr<internal::EventInterface> implementation_;
 
-  // Pointer to the StreamExecutor interface used to create this object.
-  // Not owned.
-  StreamExecutor* stream_exec_;
+  SE_DISALLOW_COPY_AND_ASSIGN(Event);
 };
 
 }  // namespace gputools

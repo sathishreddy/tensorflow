@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,11 @@ limitations under the License.
 namespace tensorflow {
 
 typedef Eigen::GpuDevice GPUDevice;
+
+// this is for v2
+template struct functor::AdjustContrastv2<GPUDevice>;
+
+// these are for v1
 template struct functor::AdjustContrast<GPUDevice, uint8>;
 template struct functor::AdjustContrast<GPUDevice, int8>;
 template struct functor::AdjustContrast<GPUDevice, int16>;

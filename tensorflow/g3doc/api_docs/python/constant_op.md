@@ -3,7 +3,7 @@
 # Constants, Sequences, and Random Values
 
 Note: Functions taking `Tensor` arguments can also take anything accepted by
-[`tf.convert_to_tensor`](../../api_docs/python/framework.md#convert_to_tensor).
+[`tf.convert_to_tensor`](framework.md#convert_to_tensor).
 
 [TOC]
 
@@ -60,7 +60,7 @@ tf.zeros_like(tensor) ==> [[0, 0, 0], [0, 0, 0]]
 
 *  <b>`tensor`</b>: A `Tensor`.
 *  <b>`dtype`</b>: A type for the returned `Tensor`. Must be `float32`, `float64`,
-  `int8`, `int16`, `int32`, `int64`, `uint8`, or `complex64`.
+  `int8`, `int16`, `int32`, `int64`, `uint8`, `complex64`, or `complex128`.
 
 *  <b>`name`</b>: A name for the operation (optional).
 
@@ -119,7 +119,7 @@ tf.ones_like(tensor) ==> [[1, 1, 1], [1, 1, 1]]
 
 *  <b>`tensor`</b>: A `Tensor`.
 *  <b>`dtype`</b>: A type for the returned `Tensor`. Must be `float32`, `float64`,
-  `int8`, `int16`, `int32`, `int64`, `uint8`, or `complex64`.
+  `int8`, `int16`, `int32`, `int64`, `uint8`, `complex64`, or `complex128`.
 
 *  <b>`name`</b>: A name for the operation (optional).
 
@@ -140,10 +140,9 @@ This operation creates a tensor of shape `dims` and fills it with `value`.
 For example:
 
 ```prettyprint
-# output tensor shape needs to be [2, 3]
-# so 'dims' is [2, 3]
-fill(dims, 9) ==> [[9, 9, 9]
-                   [9, 9, 9]]
+# Output tensor has shape [2, 3].
+fill([2, 3], 9) ==> [[9, 9, 9]
+                     [9, 9, 9]]
 ```
 
 ##### Args:
@@ -177,9 +176,8 @@ Creates a constant tensor.
  elements specified by `shape`, the last element in the list will be used
  to fill the remaining entries.
 
- The argument `shape` is optional. If present, it specifies the dimensions
- of the resulting tensor. If not present, then the tensor is a scalar (0-D)
- if `value` is a scalar, or 1-D otherwise.
+ The argument `shape` is optional. If present, it specifies the dimensions of
+ the resulting tensor. If not present, the shape of `value` is used.
 
  If the argument `dtype` is not specified, then the type is inferred from
  the type of `value`.
@@ -319,15 +317,17 @@ shuff = tf.random_shuffle(c)
 
 # Each time we run these ops, different results are generated
 sess = tf.Session()
-print sess.run(norm)
-print sess.run(norm)
+print(sess.run(norm))
+print(sess.run(norm))
 
 # Set an op-level seed to generate repeatable sequences across sessions.
-c = tf.constant([[1, 2], [3, 4], [5, 6]])
+norm = tf.random_normal([2, 3], seed=1234)
 sess = tf.Session()
-norm = tf.random_normal(c, seed=1234)
-print sess.run(norm)
-print sess.run(norm)
+print(sess.run(norm))
+print(sess.run(norm))
+sess = tf.Session()
+print(sess.run(norm))
+print(sess.run(norm))
 ```
 
 Another common use of random values is the initialization of variables. Also see
@@ -341,7 +341,7 @@ init = tf.initialize_all_variables()
 
 sess = tf.Session()
 sess.run(init)
-print sess.run(var)
+print(sess.run(var))
 ```
 
 - - -
@@ -478,6 +478,113 @@ to one and only one `output[i]`. For example, a mapping that might occur for a
 
 - - -
 
+### `tf.random_crop(value, size, seed=None, name=None)` {#random_crop}
+
+Randomly crops a tensor to a given size.
+
+Slices a shape `size` portion out of `value` at a uniformly chosen offset.
+Requires `value.shape >= size`.
+
+If a dimension should not be cropped, pass the full size of that dimension.
+For example, RGB images can be cropped with
+`size = [crop_height, crop_width, 3]`.
+
+##### Args:
+
+
+*  <b>`value`</b>: Input tensor to crop.
+*  <b>`size`</b>: 1-D tensor with size the rank of `value`.
+*  <b>`seed`</b>: Python integer. Used to create a random seed. See
+    [`set_random_seed`](../../api_docs/python/constant_op.md#set_random_seed)
+    for behavior.
+*  <b>`name`</b>: A name for this operation (optional).
+
+##### Returns:
+
+  A cropped tensor of the same rank as `value` and shape `size`.
+
+
+- - -
+
+### `tf.multinomial(logits, num_samples, seed=None, name=None)` {#multinomial}
+
+Draws samples from a multinomial distribution.
+
+Example:
+
+```python
+# samples has shape [1, 5], where each value is either 0 or 1 with equal
+# probability.
+samples = tf.multinomial(tf.log([[10., 10.]]), 5)
+```
+
+##### Args:
+
+
+*  <b>`logits`</b>: 2-D Tensor with shape `[batch_size, num_classes]`.  Each slice
+    `[i, :]` represents the unnormalized log probabilities for all classes.
+*  <b>`num_samples`</b>: 0-D.  Number of independent samples to draw for each row slice.
+*  <b>`seed`</b>: A Python integer. Used to create a random seed for the distribution.
+    See
+    [`set_random_seed`](../../api_docs/python/constant_op.md#set_random_seed)
+    for behavior.
+*  <b>`name`</b>: Optional name for the operation.
+
+##### Returns:
+
+  The drawn samples of shape `[batch_size, num_samples]`.
+
+
+- - -
+
+### `tf.random_gamma(shape, alpha, beta=None, dtype=tf.float32, seed=None, name=None)` {#random_gamma}
+
+Draws `shape` samples from each of the given Gamma distribution(s).
+
+`alpha` is the shape parameter describing the distribution(s), and `beta` is
+the inverse scale parameter(s).
+
+Example:
+
+  samples = tf.random_gamma([10], [0.5, 1.5])
+  # samples has shape [10, 2], where each slice [:, 0] and [:, 1] represents
+  # the samples drawn from each distribution
+
+  samples = tf.random_gamma([7, 5], [0.5, 1.5])
+  # samples has shape [7, 5, 2], where each slice [:, :, 0] and [:, :, 1]
+  # represents the 7x5 samples drawn from each of the two distributions
+
+  samples = tf.random_gamma([30], [[1.],[3.],[5.]], beta=[[3., 4.]])
+  # samples has shape [30, 3, 2], with 30 samples each of 3x2 distributions.
+
+##### Args:
+
+
+*  <b>`shape`</b>: A 1-D integer Tensor or Python array. The shape of the output samples
+    to be drawn per alpha/beta-parameterized distribution.
+*  <b>`alpha`</b>: A Tensor or Python value or N-D array of type `dtype`. `alpha`
+    provides the shape parameter(s) describing the gamma distribution(s) to
+    sample. Must be broadcastable with `beta`.
+*  <b>`beta`</b>: A Tensor or Python value or N-D array of type `dtype`. Defaults to 1.
+    `beta` provides the inverse scale parameter(s) of the gamma
+    distribution(s) to sample. Must be broadcastable with `alpha`.
+*  <b>`dtype`</b>: The type of alpha, beta, and the output: `float16`, `float32`, or
+    `float64`.
+*  <b>`seed`</b>: A Python integer. Used to create a random seed for the distributions.
+    See
+    [`set_random_seed`](../../api_docs/python/constant_op.md#set_random_seed)
+    for behavior.
+*  <b>`name`</b>: Optional name for the operation.
+
+##### Returns:
+
+
+*  <b>`samples`</b>: a `Tensor` of shape `tf.concat(shape, tf.shape(alpha + beta))` with
+    values of type `dtype`.
+
+
+- - -
+
 ### `tf.set_random_seed(seed)` {#set_random_seed}
 
 Sets the graph-level random seed.
@@ -507,19 +614,19 @@ graph-level nor op-level seeds:
 a = tf.random_uniform([1])
 b = tf.random_normal([1])
 
-print "Session 1"
+print("Session 1")
 with tf.Session() as sess1:
-  print sess1.run(a)  # generates 'A1'
-  print sess1.run(a)  # generates 'A2'
-  print sess1.run(b)  # generates 'B1'
-  print sess1.run(b)  # generates 'B2'
+  print(sess1.run(a))  # generates 'A1'
+  print(sess1.run(a))  # generates 'A2'
+  print(sess1.run(b))  # generates 'B1'
+  print(sess1.run(b))  # generates 'B2'
 
-print "Session 2"
+print("Session 2")
 with tf.Session() as sess2:
-  print sess2.run(a)  # generates 'A3'
-  print sess2.run(a)  # generates 'A4'
-  print sess2.run(b)  # generates 'B3'
-  print sess2.run(b)  # generates 'B4'
+  print(sess2.run(a))  # generates 'A3'
+  print(sess2.run(a))  # generates 'A4'
+  print(sess2.run(b))  # generates 'B3'
+  print(sess2.run(b))  # generates 'B4'
 ```
 
 To generate the same repeatable sequence for an op across sessions, set the
@@ -531,19 +638,19 @@ b = tf.random_normal([1])
 
 # Repeatedly running this block with the same graph will generate the same
 # sequence of values for 'a', but different sequences of values for 'b'.
-print "Session 1"
+print("Session 1")
 with tf.Session() as sess1:
-  print sess1.run(a)  # generates 'A1'
-  print sess1.run(a)  # generates 'A2'
-  print sess1.run(b)  # generates 'B1'
-  print sess1.run(b)  # generates 'B2'
+  print(sess1.run(a))  # generates 'A1'
+  print(sess1.run(a))  # generates 'A2'
+  print(sess1.run(b))  # generates 'B1'
+  print(sess1.run(b))  # generates 'B2'
 
-print "Session 2"
+print("Session 2")
 with tf.Session() as sess2:
-  print sess2.run(a)  # generates 'A1'
-  print sess2.run(a)  # generates 'A2'
-  print sess2.run(b)  # generates 'B3'
-  print sess2.run(b)  # generates 'B4'
+  print(sess2.run(a))  # generates 'A1'
+  print(sess2.run(a))  # generates 'A2'
+  print(sess2.run(b))  # generates 'B3'
+  print(sess2.run(b))  # generates 'B4'
 ```
 
 To make the random sequences generated by all ops be repeatable across
@@ -556,19 +663,19 @@ b = tf.random_normal([1])
 
 # Repeatedly running this block with the same graph will generate different
 # sequences of 'a' and 'b'.
-print "Session 1"
+print("Session 1")
 with tf.Session() as sess1:
-  print sess1.run(a)  # generates 'A1'
-  print sess1.run(a)  # generates 'A2'
-  print sess1.run(b)  # generates 'B1'
-  print sess1.run(b)  # generates 'B2'
+  print(sess1.run(a))  # generates 'A1'
+  print(sess1.run(a))  # generates 'A2'
+  print(sess1.run(b))  # generates 'B1'
+  print(sess1.run(b))  # generates 'B2'
 
-print "Session 2"
+print("Session 2")
 with tf.Session() as sess2:
-  print sess2.run(a)  # generates 'A1'
-  print sess2.run(a)  # generates 'A2'
-  print sess2.run(b)  # generates 'B1'
-  print sess2.run(b)  # generates 'B2'
+  print(sess2.run(a))  # generates 'A1'
+  print(sess2.run(a))  # generates 'A2'
+  print(sess2.run(b))  # generates 'B1'
+  print(sess2.run(b))  # generates 'B2'
 ```
 
 ##### Args:

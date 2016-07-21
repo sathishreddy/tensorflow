@@ -132,6 +132,11 @@ public class CameraConnectionFragment extends Fragment {
   private CameraDevice cameraDevice;
 
   /**
+   * The rotation in degrees of the camera sensor from the display. 
+   */
+  private Integer sensorOrientation;
+  
+  /**
    * The {@link android.util.Size} of camera preview.
    */
   private Size previewSize;
@@ -180,9 +185,19 @@ public class CameraConnectionFragment extends Fragment {
   private Handler backgroundHandler;
 
   /**
-   * An {@link ImageReader} that handles still image capture.
+   * An additional thread for running inference so as not to block the camera.
    */
-  private ImageReader imageReader;
+  private HandlerThread inferenceThread;
+
+  /**
+   * A {@link Handler} for running tasks in the background.
+   */
+  private Handler inferenceHandler;
+
+  /**
+   * An {@link ImageReader} that handles preview frame capture.
+   */
+  private ImageReader previewReader;
 
   /**
    * {@link android.hardware.camera2.CaptureRequest.Builder} for the camera preview
@@ -328,10 +343,8 @@ public class CameraConnectionFragment extends Fragment {
                 Arrays.asList(map.getOutputSizes(ImageFormat.YUV_420_888)),
                 new CompareSizesByArea());
 
-        imageReader =
-            ImageReader.newInstance(
-                largest.getWidth(), largest.getHeight(), ImageFormat.YUV_420_888, /*maxImages*/ 2);
-
+        sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+        
         // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
         // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
         // garbage capture data.
@@ -393,9 +406,9 @@ public class CameraConnectionFragment extends Fragment {
         cameraDevice.close();
         cameraDevice = null;
       }
-      if (null != imageReader) {
-        imageReader.close();
-        imageReader = null;
+      if (null != previewReader) {
+        previewReader.close();
+        previewReader = null;
       }
     } catch (final InterruptedException e) {
       throw new RuntimeException("Interrupted while trying to lock camera closing.", e);
@@ -408,9 +421,13 @@ public class CameraConnectionFragment extends Fragment {
    * Starts a background thread and its {@link Handler}.
    */
   private void startBackgroundThread() {
-    backgroundThread = new HandlerThread("CameraBackground");
+    backgroundThread = new HandlerThread("ImageListener");
     backgroundThread.start();
     backgroundHandler = new Handler(backgroundThread.getLooper());
+
+    inferenceThread = new HandlerThread("InferenceThread");
+    inferenceThread.start();
+    inferenceHandler = new Handler(inferenceThread.getLooper());
   }
 
   /**
@@ -418,16 +435,21 @@ public class CameraConnectionFragment extends Fragment {
    */
   private void stopBackgroundThread() {
     backgroundThread.quitSafely();
+    inferenceThread.quitSafely();
     try {
       backgroundThread.join();
       backgroundThread = null;
       backgroundHandler = null;
+
+      inferenceThread.join();
+      inferenceThread = null;
+      inferenceThread = null;
     } catch (final InterruptedException e) {
       LOGGER.e(e, "Exception!");
     }
   }
 
-  private final TensorflowImageListener tfPreviewListener = new TensorflowImageListener();
+  private final TensorFlowImageListener tfPreviewListener = new TensorFlowImageListener();
 
   private final CameraCaptureSession.CaptureCallback captureCallback =
       new CameraCaptureSession.CaptureCallback() {
@@ -465,7 +487,7 @@ public class CameraConnectionFragment extends Fragment {
       LOGGER.i("Opening camera preview: " + previewSize.getWidth() + "x" + previewSize.getHeight());
 
       // Create the reader for the preview frames.
-      final ImageReader previewReader =
+      previewReader =
           ImageReader.newInstance(
               previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
 
@@ -474,7 +496,7 @@ public class CameraConnectionFragment extends Fragment {
 
       // Here, we create a CameraCaptureSession for camera preview.
       cameraDevice.createCaptureSession(
-          Arrays.asList(surface, imageReader.getSurface(), previewReader.getSurface()),
+          Arrays.asList(surface, previewReader.getSurface()),
           new CameraCaptureSession.StateCallback() {
 
             @Override
@@ -515,8 +537,9 @@ public class CameraConnectionFragment extends Fragment {
     }
 
     LOGGER.i("Getting assets.");
-    tfPreviewListener.initialize(getActivity().getAssets(), scoreView);
-    LOGGER.i("Tensorflow initialized.");
+    tfPreviewListener.initialize(
+        getActivity().getAssets(), scoreView, inferenceHandler, sensorOrientation);
+    LOGGER.i("TensorFlow initialized.");
   }
 
   /**

@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,9 +42,6 @@ enum class PlatformKind {
   kInvalid,
   kCuda,
   kOpenCL,
-  kOpenCLAltera,  // Altera FPGA OpenCL platform.
-                  // See documentation: go/fpgaopencl
-                  // (StreamExecutor integration)
   kHost,
   kMock,
   kSize,

@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -71,9 +71,7 @@ class StreamExecutor {
  public:
   explicit StreamExecutor(PlatformKind kind,
                           const PluginConfig &plugin_config = PluginConfig());
-
-  // Primarily used for testing.
-  StreamExecutor(PlatformKind kind,
+  StreamExecutor(const Platform *platform,
                  internal::StreamExecutorInterface *implementation);
 
   ~StreamExecutor();
@@ -81,8 +79,12 @@ class StreamExecutor {
   port::Status Init();
   port::Status Init(int device_ordinal, DeviceOptions device_options);
 
+  // DEPRECATED: Do not use; use platform() instead.
   // Returns the platform that this StreamExecutor is acting upon.
   PlatformKind platform_kind() const { return platform_kind_; }
+
+  // Returns a reference to the platform that created this executor.
+  const Platform *platform() const { return platform_; }
 
   // Retrieves (loads) a kernel for the platform this StreamExecutor is acting
   // upon, if one exists.
@@ -336,6 +338,18 @@ class StreamExecutor {
   // platform that underlies this interface.
   bool SupportsDnn() const;
 
+  // Get the list of supported algorithms for the forward convolution opeartion.
+  bool GetConvolveAlgorithms(std::vector<dnn::AlgorithmType> *out_algorithms);
+
+  // Get the list of supported algorithms for the backward convolution on data.
+  bool GetConvolveBackwardDataAlgorithms(
+      std::vector<dnn::AlgorithmType> *out_algorithms);
+
+  // Get the list of supported algorithms for the backward convolution on the
+  // filter.
+  bool GetConvolveBackwardFilterAlgorithms(
+      std::vector<dnn::AlgorithmType> *out_algorithms);
+
   // Returns the device ordinal that this StreamExecutor was initialized with.
   // Meaningless before initialization.
   int device_ordinal() const { return device_ordinal_; }
@@ -538,14 +552,17 @@ class StreamExecutor {
   // can acquire the lock on their first (mutating) call as well.
   mutable mutex mu_;
 
-  // A mapping of pointer (to GPU memory) to string representation of the stack
-  // (of the allocating thread) at the time at which the pointer was allocated.
-  std::map<void *, AllocRecord> mem_allocs_ GUARDED_BY(mu_);
+  // Reference to the platform that created this executor.
+  const Platform *platform_;
 
   // Pointer to the platform-specific-interface implementation. This is
   // delegated to by the interface routines in pointer-to-implementation
   // fashion.
   std::unique_ptr<internal::StreamExecutorInterface> implementation_;
+
+  // A mapping of pointer (to GPU memory) to string representation of the stack
+  // (of the allocating thread) at the time at which the pointer was allocated.
+  std::map<void *, AllocRecord> mem_allocs_ GUARDED_BY(mu_);
 
   // Memoized BLAS support object -- we only want to create this once when asked
   // for a BLAS interface.

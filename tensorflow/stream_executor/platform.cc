@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,8 +31,6 @@ string PlatformKindString(PlatformKind kind) {
       return "CUDA";
     case PlatformKind::kOpenCL:
       return "OpenCL";
-    case PlatformKind::kOpenCLAltera:
-      return "OpenCL+Altera";
     case PlatformKind::kHost:
       return "Host";
     case PlatformKind::kMock:

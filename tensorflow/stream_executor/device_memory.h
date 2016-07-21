@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -111,6 +111,7 @@ class DeviceMemory final : public DeviceMemoryBase {
  public:
   // Default constructor instantiates a null-pointed, zero-sized memory region.
   DeviceMemory() : DeviceMemoryBase(nullptr, 0) {}
+  DeviceMemory(std::nullptr_t) : DeviceMemory() {}
 
   // Typed device memory regions may be constructed from untyped device memory
   // regions, this effectively amounts to a cast from a void*.

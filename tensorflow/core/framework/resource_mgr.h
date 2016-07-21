@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,11 +23,13 @@ limitations under the License.
 
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/framework/type_index.h"
 #include "tensorflow/core/lib/core/refcount.h"
+#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/hash/hash.h"
 #include "tensorflow/core/platform/logging.h"
+#include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/thread_annotations.h"
-#include "tensorflow/core/public/status.h"
 
 namespace tensorflow {
 
@@ -121,8 +123,11 @@ class ResourceMgr {
   // Deletes all resources in all containers.
   void Clear();
 
+  // Returns a text description for all resources.
+  string DebugString() const;
+
  private:
-  typedef std::pair<std::type_index, string> Key;
+  typedef std::pair<TypeIndex, string> Key;
   struct KeyHash {
     std::size_t operator()(const Key& k) const {
       return Hash64(k.second.data(), k.second.size(), k.first.hash_code());
@@ -139,13 +144,11 @@ class ResourceMgr {
   mutable mutex mu_;
   std::unordered_map<string, Container*> containers_ GUARDED_BY(mu_);
 
-  Status DoCreate(const string& container, std::type_index type,
-                  const string& name,
+  Status DoCreate(const string& container, TypeIndex type, const string& name,
                   ResourceBase* resource) TF_MUST_USE_RESULT;
-  Status DoLookup(const string& container, std::type_index type,
-                  const string& name,
+  Status DoLookup(const string& container, TypeIndex type, const string& name,
                   ResourceBase** resource) const TF_MUST_USE_RESULT;
-  Status DoDelete(const string& container, std::type_index type,
+  Status DoDelete(const string& container, TypeIndex type,
                   const string& name) TF_MUST_USE_RESULT;
 
   TF_DISALLOW_COPY_AND_ASSIGN(ResourceMgr);
@@ -223,7 +226,7 @@ Status ResourceMgr::Create(const string& container, const string& name,
                            T* resource) {
   CheckDeriveFromResourceBase<T>();
   CHECK(resource != nullptr);
-  return DoCreate(container, std::type_index(typeid(T)), name, resource);
+  return DoCreate(container, MakeTypeIndex<T>(), name, resource);
 }
 
 template <typename T>
@@ -231,7 +234,7 @@ Status ResourceMgr::Lookup(const string& container, const string& name,
                            T** resource) const {
   CheckDeriveFromResourceBase<T>();
   ResourceBase* found = nullptr;
-  Status s = DoLookup(container, std::type_index(typeid(T)), name, &found);
+  Status s = DoLookup(container, MakeTypeIndex<T>(), name, &found);
   if (s.ok()) {
     // It's safe to down cast 'found' to T* since
     // typeid(T).hash_code() is part of the map key.
@@ -265,7 +268,7 @@ Status ResourceMgr::LookupOrCreate(const string& container, const string& name,
 template <typename T>
 Status ResourceMgr::Delete(const string& container, const string& name) {
   CheckDeriveFromResourceBase<T>();
-  return DoDelete(container, std::type_index(typeid(T)), name);
+  return DoDelete(container, MakeTypeIndex<T>(), name);
 }
 
 template <typename T>

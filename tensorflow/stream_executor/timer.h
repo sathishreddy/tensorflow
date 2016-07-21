@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -58,13 +58,13 @@ class Timer {
   internal::TimerInterface *implementation() { return implementation_.get(); }
 
  private:
-  // Platform-dependent implementation of the timer internals for the underlying
-  // platform. This class just delegates to this opaque instance.
-  std::unique_ptr<internal::TimerInterface> implementation_;
-
   // The StreamExecutor that manages the platform-specific internals for this
   // timer.
   StreamExecutor *parent_;
+
+  // Platform-dependent implementation of the timer internals for the underlying
+  // platform. This class just delegates to this opaque instance.
+  std::unique_ptr<internal::TimerInterface> implementation_;
 
   SE_DISALLOW_COPY_AND_ASSIGN(Timer);
 };

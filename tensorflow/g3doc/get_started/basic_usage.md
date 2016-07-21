@@ -96,12 +96,12 @@ sess = tf.Session()
 # All inputs needed by the op are run automatically by the session.  They
 # typically are run in parallel.
 #
-# The call 'run(product)' thus causes the execution of threes ops in the
+# The call 'run(product)' thus causes the execution of three ops in the
 # graph: the two constants and matmul.
 #
 # The output of the op is returned in 'result' as a numpy `ndarray` object.
 result = sess.run(product)
-print result
+print(result)
 # ==> [[ 12.]]
 
 # Close the Session when we're done.
@@ -115,7 +115,7 @@ with a "with" block. The `Session` closes automatically at the end of the
 ```python
 with tf.Session() as sess:
   result = sess.run([product])
-  print result
+  print(result)
 ```
 
 The TensorFlow implementation translates the graph definition into executable
@@ -146,6 +146,35 @@ Devices are specified with strings.  The currently supported devices are:
 See [Using GPUs](../how_tos/using_gpu/index.md) for more information about GPUs
 and TensorFlow.
 
+### Launching the graph in a distributed session
+
+To create a TensorFlow cluster, launch a TensorFlow server on each of the
+machines in the cluster. When you instantiate a Session in your client, you
+pass it the network location of one of the machines in the cluster:
+
+```python
+with tf.Session("grpc://example.org:2222") as sess:
+  # Calls to sess.run(...) will be executed on the cluster.
+  ...
+```
+
+This machine becomes the master for the session. The master distributes the
+graph across other machines in the cluster (workers), much as the local
+implementation distributes the graph across available compute resources within
+a machine.
+
+You can use "with tf.device():" statements to directly specify workers for
+particular parts of the graph:
+
+```python
+with tf.device("/job:ps/task:0"):
+  weights = tf.Variable(...)
+  biases = tf.Variable(...)
+```
+
+See the [Distributed TensorFlow How To](../how_tos/distributed/) for more
+information about distributed sessions and clusters.
+
 ## Interactive Usage
 
 The Python examples in the documentation launch the graph with a
@@ -173,8 +202,11 @@ x.initializer.run()
 
 # Add an op to subtract 'a' from 'x'.  Run it and print the result
 sub = tf.sub(x, a)
-print sub.eval()
+print(sub.eval())
 # ==> [-2. -1.]
+
+# Close the Session when we're done.
+sess.close()
 ```
 
 ## Tensors
@@ -203,7 +235,6 @@ new_value = tf.add(state, one)
 update = tf.assign(state, new_value)
 
 # Variables must be initialized by running an `init` Op after having
-
 # launched the graph.  We first have to add the `init` Op to the graph.
 init_op = tf.initialize_all_variables()
 
@@ -212,11 +243,11 @@ with tf.Session() as sess:
   # Run the 'init' op
   sess.run(init_op)
   # Print the initial value of 'state'
-  print sess.run(state)
+  print(sess.run(state))
   # Run the op that updates 'state' and print 'state'.
   for _ in range(3):
     sess.run(update)
-    print sess.run(state)
+    print(sess.run(state))
 
 # output:
 
@@ -243,15 +274,15 @@ example we fetched the single node `state`, but you can also fetch multiple
 tensors:
 
 ```python
-input1 = tf.constant(3.0)
-input2 = tf.constant(2.0)
-input3 = tf.constant(5.0)
+input1 = tf.constant([3.0])
+input2 = tf.constant([2.0])
+input3 = tf.constant([5.0])
 intermed = tf.add(input2, input3)
 mul = tf.mul(input1, intermed)
 
 with tf.Session() as sess:
   result = sess.run([mul, intermed])
-  print result
+  print(result)
 
 # output:
 # [array([ 21.], dtype=float32), array([ 7.], dtype=float32)]
@@ -279,7 +310,7 @@ input2 = tf.placeholder(tf.float32)
 output = tf.mul(input1, input2)
 
 with tf.Session() as sess:
-  print sess.run([output], feed_dict={input1:[7.], input2:[2.]})
+  print(sess.run([output], feed_dict={input1:[7.], input2:[2.]}))
 
 # output:
 # [array([ 14.], dtype=float32)]
@@ -288,6 +319,6 @@ with tf.Session() as sess:
 A `placeholder()` operation generates an error if you do not supply a feed for
 it. See the
 [MNIST fully-connected feed tutorial](../tutorials/mnist/tf/index.md)
-([source code](https://tensorflow.googlesource.com/tensorflow/+/master/tensorflow/g3doc/tutorials/mnist/fully_connected_feed.py))
+([source code](https://www.tensorflow.org/code/tensorflow/examples/tutorials/mnist/fully_connected_feed.py))
 for a larger-scale example of feeds.
 

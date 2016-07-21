@@ -43,6 +43,38 @@ Calling `tf.Variable()` adds several ops to the graph:
 The value returned by `tf.Variable()` value is an instance of the Python class
 `tf.Variable`.
 
+### Device placement
+
+A variable can be pinned to a particular device when it is created, using a
+[`with tf.device(...):`](../../api_docs/python/framework.md#device) block:
+
+```python
+# Pin a variable to CPU.
+with tf.device("/cpu:0"):
+  v = tf.Variable(...)
+
+# Pin a variable to GPU.
+with tf.device("/gpu:0"):
+  v = tf.Variable(...)
+
+# Pin a variable to a particular parameter server task.
+with tf.device("/job:ps/task:7"):
+  v = tf.Variable(...)
+```
+
+**N.B.** Operations that mutate a variable, such as
+[`v.assign()`](../../api_docs/python/state.md#Variable.assign) and the parameter
+update operations in a
+[`tf.train.Optimizer`](../../api_docs/python/train.md#Optimizer) *must* run on
+the same device as the variable. Incompatible device placement directives will
+be ignored when creating these operations.
+
+Device placement is particularly important when running in a replicated
+setting. See
+[`tf.train.replica_device_setter()`](../../api_docs/python/train.md#replica_device_setter)
+for details of a device function that can simplify the configuration for devices
+for a replicated model.
+
 ## Initialization
 
 Variable initializers must be run explicitly before other ops in your model can
@@ -122,6 +154,10 @@ variables in the checkpoint files.  By default, it uses the value of the
 [`Variable.name`](../../api_docs/python/state_ops.md#Variable.name) property for
 each variable.
 
+To understand what variables are in a checkpoint, you can use the
+[`inspect_checkpoint`](https://www.tensorflow.org/code/tensorflow/python/tools/inspect_checkpoint.py)
+library, and in particular, the `print_tensors_in_checkpoint_file` function.
+
 ### Saving Variables
 
 Create a `Saver` with `tf.train.Saver()` to manage all variables in
@@ -146,7 +182,7 @@ with tf.Session() as sess:
   ..
   # Save the variables to disk.
   save_path = saver.save(sess, "/tmp/model.ckpt")
-  print "Model saved in file: ", save_path
+  print("Model saved in file: %s" % save_path)
 ```
 
 ### Restoring Variables
@@ -167,7 +203,7 @@ saver = tf.train.Saver()
 with tf.Session() as sess:
   # Restore variables from disk.
   saver.restore(sess, "/tmp/model.ckpt")
-  print "Model restored."
+  print("Model restored.")
   # Do some work with the model
   ...
 ```

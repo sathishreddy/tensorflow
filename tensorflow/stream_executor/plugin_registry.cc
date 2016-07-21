@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -211,7 +211,8 @@ bool PluginRegistry::HasFactory(Platform::Id platform_id,
       if (plugin_id == kNullPlugin) {                                         \
         return port::Status{port::error::FAILED_PRECONDITION,                 \
                             "No suitable " PLUGIN_STRING                      \
-                            " plugin registered, default or otherwise."};     \
+                            " plugin registered. Have you linked in a "       \
+                            PLUGIN_STRING "-providing plugin?"};              \
       } else {                                                                \
         VLOG(2) << "Selecting default " PLUGIN_STRING " plugin, "             \
                 << plugin_names_[plugin_id];                                  \

@@ -3,7 +3,9 @@
 *This tutorial is intended for readers who are new to both machine learning and
 TensorFlow. If you already
 know what MNIST is, and what softmax (multinomial logistic) regression is,
-you might prefer this [faster paced tutorial](../pros/index.md).*
+you might prefer this [faster paced tutorial](../pros/index.md).
+Be sure to [install TensorFlow](../../../get_started/os_setup.md) before
+starting either tutorial.*
 
 When one learns how to program, there's a tradition that the first thing you do
 is print "Hello World." Just like programming has Hello World, machine learning
@@ -37,19 +39,20 @@ The MNIST data is hosted on
 [Yann LeCun's website](http://yann.lecun.com/exdb/mnist/).  For your
 convenience, we've included some python code to download and install the data
 automatically. You can either download
-[the code](https://tensorflow.googlesource.com/tensorflow/+/master/tensorflow/g3doc/tutorials/mnist/input_data.py)
+[the code](https://www.tensorflow.org/code/tensorflow/examples/tutorials/mnist/input_data.py)
 and import it as below, or simply copy and paste it in.
 
 ```python
-import input_data
+from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 ```
 
-The downloaded data is split into two parts, 60,000 data points of training
-data (`mnist.train`) and 10,000 points of test data (`mnist.test`).  This
-split is very important: it's essential in machine learning that we
-have separate data which we don't learn from so that we can make sure
-that what we've learned actually generalizes!
+The downloaded data is split into three parts, 55,000 data points of training
+data (`mnist.train`), 10,000 points of test data (`mnist.test`), and 5,000
+points of validation data (`mnist.validation`). This split is very important:
+it's essential in machine learning that we have separate data which we don't
+learn from so that we can make sure that what we've learned actually
+generalizes!
 
 As mentioned earlier, every MNIST data point has two parts: an image of a
 handwritten digit and a corresponding label. We will call the images "xs" and
@@ -167,7 +170,7 @@ or negative weight. Softmax then normalizes these weights, so that they add up
 to one, forming a valid probability distribution. (To get more intuition about
 the softmax function, check out the
 [section](http://neuralnetworksanddeeplearning.com/chap3.html#softmax)
-on it in Michael Nieslen's book, complete with an interactive visualization.)
+on it in Michael Nielsen's book, complete with an interactive visualization.)
 
 
 You can picture our softmax regression as looking something like the following,
@@ -308,32 +311,30 @@ y_ = tf.placeholder(tf.float32, [None, 10])
 Then we can implement the cross-entropy, \\(-\sum y'\log(y)\\):
 
 ```python
-cross_entropy = -tf.reduce_sum(y_*tf.log(y))
+cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1]))
 ```
 
 First, `tf.log` computes the logarithm of each element of `y`. Next, we multiply
-each element of `y_` with the corresponding element of `tf.log(y)`. Finally,
-`tf.reduce_sum` adds all the elements of the tensor. (Note that this isn't
-just the cross-entropy of the truth with a single prediction, but the sum of the
-cross-entropies for all 100 images we looked at. How well we are doing on 100
-data points is a much better description of how good our model is than a single
-data point.)
+each element of `y_` with the corresponding element of `tf.log(y)`. Then 
+`tf.reduce_sum` adds the elements in the second dimension of y, due to the 
+`reduction_indices=[1]` parameter. Finally,  `tf.reduce_mean` computes the mean
+over all the examples in the batch.
 
 Now that we know what we want our model to do, it's very easy to have TensorFlow
 train it to do so.
 Because TensorFlow knows the entire graph of your computations, it
 can automatically use the [backpropagation
 algorithm](http://colah.github.io/posts/2015-08-Backprop/)
-to efficiently determine how your variables affect the cost you ask it minimize.
-Then it can apply your choice of optimization algorithm to modify the variables
-and reduce the cost.
+to efficiently determine how your variables affect the cost you ask it to
+minimize. Then it can apply your choice of optimization algorithm to modify the
+variables and reduce the cost.
 
 ```python
-train_step = tf.train.GradientDescentOptimizer(0.01).minimize(cross_entropy)
+train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
 ```
 
 In this case, we ask TensorFlow to minimize `cross_entropy` using the gradient
-descent algorithm with a learning rate of 0.01. Gradient descent is a simple
+descent algorithm with a learning rate of 0.5. Gradient descent is a simple
 procedure, where TensorFlow simply shifts each variable a little bit in the
 direction that reduces the cost. But TensorFlow also provides
 [many other optimization algorithms]
@@ -401,16 +402,16 @@ cast to floating point numbers and then take the mean. For example,
 `[True, False, True, True]` would become `[1,0,1,1]` which would become `0.75`.
 
 ```python
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 ```
 
 Finally, we ask for our accuracy on our test data.
 
 ```python
-print sess.run(accuracy, feed_dict={x: mnist.test.images, y_: mnist.test.labels})
+print(sess.run(accuracy, feed_dict={x: mnist.test.images, y_: mnist.test.labels}))
 ```
 
-This should be about 91%.
+This should be about 92%.
 
 Is that good? Well, not really. In fact, it's pretty bad. This is because we're
 using a very simple model. With some small changes, we can get to

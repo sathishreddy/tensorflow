@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@ limitations under the License.
 ==============================================================================*/
 
 #include "tensorflow/core/framework/op.h"
-#include "tensorflow/core/platform/port.h"
 
 namespace tensorflow {
 
@@ -22,7 +21,7 @@ REGISTER_OP("Save")
     .Input("filename: string")
     .Input("tensor_names: string")
     .Input("data: T")
-    .Attr("T: list({float, double, int32, int64, quint8, qint8, qint32})")
+    .Attr("T: list(type)")
     .Doc(R"doc(
 Saves the input tensors to disk.
 
@@ -32,7 +31,7 @@ is written to `filename` with name `tensor_names[i]`.
 See also `SaveSlices`.
 
 filename: Must have a single element. The name of the file to which we write
-the tensor.
+  the tensor.
 tensor_names: Shape `[N]`. The names of the tensors to be saved.
 data: `N` tensors to save.
 )doc");
@@ -42,7 +41,7 @@ REGISTER_OP("SaveSlices")
     .Input("tensor_names: string")
     .Input("shapes_and_slices: string")
     .Input("data: T")
-    .Attr("T: list({float, double, int32, int64, quint8, qint8, qint32})")
+    .Attr("T: list(type)")
     .Doc(R"doc(
 Saves input tensors slices to disk.
 
@@ -69,10 +68,10 @@ where each `sliceI` is either:
 See also `Save`.
 
 filename: Must have a single element. The name of the file to which we write the
-tensor.
+  tensor.
 tensor_names: Shape `[N]`. The names of the tensors to be saved.
 shapes_and_slices: Shape `[N]`.  The shapes and slice specifications to use when
-saving the tensors.
+  saving the tensors.
 data: `N` tensors to save.
 )doc");
 
@@ -147,7 +146,7 @@ REGISTER_OP("ShardedFilename")
     .Input("num_shards: int32")
     .Output("filename: string")
     .Doc(R"doc(
-Generate a sharded filename. The filename is printf formated as
+Generate a sharded filename. The filename is printf formatted as
    %s-%05d-of-%05d, basename, shard, num_shards.
 )doc");
 
@@ -218,6 +217,7 @@ REGISTER_OP("TFRecordReader")
     .Output("reader_handle: Ref(string)")
     .Attr("container: string = ''")
     .Attr("shared_name: string = ''")
+    .Attr("compression_type: string = ''")
     .SetIsStateful()
     .Doc(R"doc(
 A Reader that outputs the records from a TensorFlow Records file.
@@ -265,6 +265,27 @@ reader_handle: Handle to a Reader.
 queue_handle: Handle to a Queue, with string work items.
 key: A scalar.
 value: A scalar.
+)doc");
+
+REGISTER_OP("ReaderReadUpTo")
+    .Input("reader_handle: Ref(string)")
+    .Input("queue_handle: Ref(string)")
+    .Input("num_records: int64")
+    .Output("keys: string")
+    .Output("values: string")
+    .Doc(R"doc(
+Returns up to `num_records` (key, value) pairs produced by a Reader.
+
+Will dequeue from the input queue if necessary (e.g. when the
+Reader needs to start reading from a new file since it has finished
+with the previous file).
+It may return less than `num_records` even before the last batch.
+
+reader_handle: Handle to a `Reader`.
+queue_handle: Handle to a `Queue`, with string work items.
+num_records: number of records to read from `Reader`.
+keys: A 1-D tensor.
+values: A 1-D tensor.
 )doc");
 
 REGISTER_OP("ReaderNumRecordsProduced")
